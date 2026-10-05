@@ -1,0 +1,174 @@
+{
+  "name": "Blood Bank Low Stock Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Check for low blood stock levels\nconst items = $input.all();\nconst lowBloodStock = [];\n\n// Function to convert Google Sheets serial date (decimal number) to a JavaScript Date string\nfunction gsDateToJSDate(serial) {\n  // Serial date number is the number of days since Jan 1, 1900 (which is day 1)\n  // JS Date epoch is Jan 1, 1970 (which is day 25569 in GS format)\n  // The formula converts the GS serial number to milliseconds since Unix epoch\n  const date = new Date(Math.round((serial - 25569) * 86400 * 1000));\n  \n  // Use toLocaleString for a readable format based on locale\n  return date.toLocaleString('en-GB', { \n      day: '2-digit', \n      month: '2-digit', \n      year: 'numeric', \n      hour: '2-digit', \n      minute: '2-digit', \n      second: '2-digit' \n  });\n}\n\n\nfor (const item of items) {\n  const bloodStock = item.json;\n  // Threshold per blood group, can be set in data or default to 10 units\n  const threshold = bloodStock.threshold || 10;\n  \n  let lastUpdatedFormatted = bloodStock.last_updated;\n  \n  // Check if the value is a number AND looks like a Google Sheets serial date (usually > 40000)\n  if (typeof bloodStock.last_updated === 'number' && bloodStock.last_updated > 40000) {\n    lastUpdatedFormatted = gsDateToJSDate(bloodStock.last_updated);\n  } else {\n    // If it's not a serial number, assume it came through as a string already and use it as is\n    lastUpdatedFormatted = bloodStock.last_updated;\n  }\n\n\n  if (bloodStock.quantity <= threshold) {\n    lowBloodStock.push({\n      blood_group: bloodStock.blood_group,\n      quantity: bloodStock.quantity,\n      threshold: threshold,\n      last_updated: lastUpdatedFormatted, // Use the formatted date\n      alert_message: `Low blood stock alert: ${bloodStock.blood_group} has only ${bloodStock.quantity} units left (threshold: ${threshold})`\n    });\n  }\n}\n\nreturn lowBloodStock.map(blood => ({ json: blood }));"
+      },
+      "id": "fc74427d-cd02-441b-aa9a-313cebe95db7",
+      "name": "Check Stock Availability",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        800,
+        320
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{CONTACT_PHONE_NUMBER}}",
+        "recipientPhoneNumber": "={{CONTACT_PHONE_NUMBER}}",
+        "textBody": "=⚠️ Blood Stock Alert – {{ $now }}\n\nBlood group(s) low or unavailable:\n{{ $json.lowBloodList }}\n\nPlease arrange urgent replenishment to ensure availability for patients in need.\n\nFor help, contact the blood bank team.\n\nThank you!",
+        "additionalFields": {}
+      },
+      "id": "45da2e7a-2604-4ae7-bc3a-27932d87deba",
+      "name": "Send Alert Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        1024,
+        480
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_WHATSAPP_CREDENTIAL",
+          "name": "YOUR_WHATSAPP_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sheetId": "{{GOOGLE_SHEET_ID}}",
+        "options": {}
+      },
+      "id": "bcd15a22-4a0c-45e7-87ac-28156822a1bb",
+      "name": "Fetch Blood Stock",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        368,
+        480
+      ],
+      "typeVersion": 2,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 8
+            }
+          ]
+        }
+      },
+      "id": "abea6e71-624b-4c7a-97e7-306c5fec0f7e",
+      "name": "Daily Check Blood Stock ",
+      "type": "n8n-nodes-base.cron",
+      "position": [
+        64,
+        480
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "daef6dc7-7fbe-4b0d-b8fc-923374deefb9",
+      "name": "Get All Stock ",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        608,
+        480
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "content": "## Workflow Process\n1. **Daily Check Blood Stock**: Triggers the workflow daily.\n2. **Fetch Blood Stock**: Reads data from a Google Sheet.\n3. **Get All Stock**: Collects all available blood stock details.\n4. **Check Stock Availability**: Analyzes stock levels for low thresholds.\n5. **Send Alert Message**: Sends WhatsApp alerts if stock is low.\n\n## Sheet Columns\n- **Blood Type**: Type of blood (e.g., A+, O-).\n- **Quantity**: Current stock amount.\n- **Threshold**: Minimum acceptable stock level.\n- **Last Updated**: Date and time of last update.\n- **Status**: Current status (e.g., Low, Sufficient).",
+        "height": 360,
+        "width": 520,
+        "color": 4
+      },
+      "id": "865381c4-19e2-4f0b-a470-eefc82753618",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "Get All Stock ": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Check Stock Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Blood Stock": {
+      "main": [
+        [
+          {
+            "node": "Get All Stock ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alert Message": {
+      "main": [
+        [
+          {
+            "node": "Get All Stock ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Stock Availability": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Check Blood Stock ": {
+      "main": [
+        [
+          {
+            "node": "Fetch Blood Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
