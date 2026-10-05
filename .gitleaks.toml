@@ -1,0 +1,8 @@
+# gitleaks config: default rules plus one allowlist for a known false positive.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "n8n Switch node output labels (for example 'req/complaint mail') are not secrets"
+regexTarget = "line"
+regexes = ['''"outputKey":\s*"[^"]*"''']
