@@ -1,0 +1,378 @@
+{
+  "name": "Instagram Comment Auto-Reply Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "instagram-comments",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5c5322a4-10cf-43a1-8286-101c96d8c356",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        1392,
+        352
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "content": "# Webhook Verification\nDescription:\nHandles the initial verification handshake with Instagram's Webhook API.\nInstructions:\n\nEnsure the hub.verify_token matches the token configured in your Instagram App settings.\n\nThe response should echo the hub.challenge parameter to confirm the webhook setup.​\n\n",
+        "height": 320,
+        "width": 1440
+      },
+      "id": "c281b25f-4f5a-46a3-b2ca-c9fba1cf98e1",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "id": "f890a4d2-f897-4103-a52f-48fa3555f9a6",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1616,
+        352
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### CONTEXT AND PERSONA ###\nYou are an expert AI assistant responsible for managing the comments on an Instagram profile focused on Artificial Intelligence and Automation. The goal of the profile is to educate and engage the community on these topics. Your tone should be friendly and approachable, while also showing knowledge and professionalism. Always reply in English.\n\n### INPUT DATA ###\n- Username: {{ $('data').item.json.usuario.name }}\n- Comment text: {{ $('data').item.json.usuario.message.text }}\n- Post context\n\n### TASK ###\nAnalyze the comment and write a suitable reply, following these guidelines:\n\n1.  **Analysis and filtering:**\n    * **Identify the intent:** Is it a technical question? A simple question? A compliment? Constructive criticism? A request for help? Spam? Irrelevant content?\n    * **Relevance:** Is the comment related to AI, automation or the profile's content?\n\n2.  **Writing the reply:**\n    * **Personalization:** Start the reply by mentioning the username (e.g. \"Hi @{{ $('data').item.json.usuario.name }},\").\n    * **Relevant questions:** If it is a question about AI/automation that you can answer, give a clear and useful answer. If it is too complex, thank them for the question and suggest a specific post on the profile, or say the topic is a good idea for future content.\n    * **Compliments:** Thank them sincerely and, if possible, connect it to an aspect of the profile or its AI/automation content.\n    * **Constructive criticism:** Thank them for the feedback, show that it was considered, and reply politely.\n    * **Specific help requests (not related to content):** If it is a support request not related to the main topic, point them to the right channel or politely explain that you cannot help with that here.\n    * **Vague or simple engagement comments (e.g. \"Nice!\", \"👍\"):** Reply briefly and warmly, maybe with a relevant emoji or by encouraging them to keep following.\n    * **Spam or irrelevant:** If the comment is clearly spam, unsolicited promotion, offensive or completely off-topic for AI/automation, do NOT write a reply. In this case, return ONLY the word `[IGNORE]`.\n\n3.  **Tone and style:**\n    * Keep the tone friendly, helpful and in line with a technology/education profile.\n    * Avoid generic replies when a specific one is possible.\n    * Keep replies fairly short, suitable for Instagram comments.\n\n### EXPECTED OUTPUT ###\nReturn ONLY the reply text to be posted on Instagram. If the comment is classified as spam/irrelevant under rule 2.7, return ONLY the word `[IGNORE]`. Do not include any other explanation or extra text outside the reply or the word `[IGNORE]`.",
+        "options": {}
+      },
+      "id": "4afb4f9b-7f0f-41b8-afd0-d5c134a6a622",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1488,
+        1440
+      ],
+      "typeVersion": 1.8
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.0-flash-exp:free",
+        "options": {}
+      },
+      "id": "e56a220b-f4aa-4505-9157-31980ccb547b",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "position": [
+        1408,
+        1584
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# Data Extraction\nDescription:\nExtracts relevant data from the incoming webhook payload.\nInstructions:\n\nVerify that all necessary fields (e.g., entry.id, from.id, from.username, message.id, message.text, media.id) are correctly mapped.\n\nThis data will be used in subsequent steps for processing and responding.\n",
+        "height": 320,
+        "width": 1440,
+        "color": 5
+      },
+      "id": "9f318cf1-d99f-482d-a6d4-03ec4f603c05",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        624
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# User Validation\nDescription:\nChecks if the comment originates from a user other than the account owner.\nInstructions:\n\nCompare conta.id with usuario.id.\n\nProceed only if they differ, indicating the comment is from another user.",
+        "height": 320,
+        "width": 1440,
+        "color": 6
+      },
+      "id": "a413c839-fa19-44b9-ae33-2638dd45436e",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        1024
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# AI Response Generation\nDescription:\nUtilizes an AI agent to generate a context-aware response to the user's comment.\nInstructions:\n\nEnsure the AI model is properly configured and has access to the necessary input data.\n\nThe prompt should guide the AI to produce responses that are friendly, informative, and aligned with the profile's focus on AI and automation.",
+        "height": 320,
+        "width": 1440,
+        "color": 2
+      },
+      "id": "b19d4891-5f7e-478b-9458-464af1fd409c",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        1408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# Sending the Response\nDescription:\nSends the AI-generated reply back to the user via Instagram's API.\nInstructions:\n\nConfirm that the HTTP request is correctly formatted with the appropriate endpoint and authentication headers.\n\nHandle any potential errors or exceptions that may arise during the API call.",
+        "height": 320,
+        "width": 1440,
+        "color": 3
+      },
+      "id": "1f8b05ee-0380-4dc7-8671-f0ae87a7d08f",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        1808
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.instagram.com/v22.0/{{ $json.usuario.media.id }}?fields=id,caption",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "ff54a7c0-40b9-4ad8-a3de-47a8a20cd3e1",
+      "name": "Get post data",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1280,
+        1120
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instagram-comments",
+        "options": {}
+      },
+      "id": "d7a66f78-83f2-4173-8602-c34210364149",
+      "name": "get_new_comments",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        1392,
+        720
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1a3c5a2e-115d-4072-9d27-9baa47e84d6f",
+              "name": "endpoint",
+              "type": "string",
+              "value": "https://graph.instagram.com/v22.0"
+            },
+            {
+              "id": "ae83344d-abe5-43d6-991f-e757965e4557",
+              "name": "conta.id",
+              "type": "string",
+              "value": "={{ $json.body.entry[0].id }}"
+            },
+            {
+              "id": "d18887fa-b882-4d69-a1c0-d161291fe5fb",
+              "name": "usuario.id",
+              "type": "string",
+              "value": "={{ $json.body.entry[0].changes[0].value.from.id }}"
+            },
+            {
+              "id": "000f2d0e-6fbf-4e58-ae9c-cac4a3c54b33",
+              "name": "usuario.name",
+              "type": "string",
+              "value": "={{ $json.body.entry[0].changes[0].value.from.username }}"
+            },
+            {
+              "id": "d6fa2b24-abbe-48f7-96ff-2fc69f17b61b",
+              "name": "usuario.message.id",
+              "type": "string",
+              "value": "={{ $json.body.entry[0].changes[0].value.id }}"
+            },
+            {
+              "id": "605e9c4c-f2fc-49eb-8639-573c60ef33bb",
+              "name": "usuario.message.text",
+              "type": "string",
+              "value": "={{ $json.body.entry[0].changes[0].value.text }}"
+            },
+            {
+              "id": "198afc5d-3fd1-4d9d-aa5a-8baf75f06d29",
+              "name": "usuario.media.id",
+              "type": "string",
+              "value": "={{ $json.body.entry[0].changes[0].value.media.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0924d70a-45a2-49c9-9459-eb6e7261005e",
+      "name": "data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1632,
+        720
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "54c0a2d1-f812-4d6a-b50b-c272cfbba772",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $('data').item.json.conta.id }}",
+              "rightValue": "={{ $('data').item.json.usuario.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2836ec33-b19f-4875-bfeb-08d9f9feae49",
+      "name": "its me?",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        1552,
+        1120
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('data').item.json.endpoint }}/{{ $('data').item.json.usuario.message.id }}/replies",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fdf8ff5e-9c17-43f3-a747-79228ca68e03",
+      "name": "Post comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1616,
+        1904
+      ],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "data": {
+      "main": [
+        [
+          {
+            "node": "Get post data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "its me?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Post comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get post data": {
+      "main": [
+        [
+          {
+            "node": "its me?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_new_comments": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateId": "3713"
+  }
+}
