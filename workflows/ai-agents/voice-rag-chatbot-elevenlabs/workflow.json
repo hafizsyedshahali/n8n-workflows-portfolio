@@ -1,0 +1,571 @@
+{
+  "name": "Voice RAG Chatbot with ElevenLabs",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.question }}",
+        "options": {}
+      },
+      "id": "95ba94a3-38c9-4681-a612-2f44b168c1e9",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        928,
+        1536
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "name": "company",
+        "description": "Answers questions about the topic the user asks about."
+      },
+      "id": "9a2692aa-accf-45f1-9160-9a254dd4d7fa",
+      "name": "Vector Store Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "position": [
+        1120,
+        1776
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "{{QDRANT_COLLECTION}}"
+        },
+        "options": {}
+      },
+      "id": "ad2447eb-0f05-45ba-92aa-c1c6e49e4348",
+      "name": "Qdrant Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        960,
+        2048
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "edcd64a7-d2a0-43cb-868b-8d2ad62c12d3",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        960,
+        2208
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "content": "# STEP 4\n\n## RAG System\n\nClick on \"test workflow\" on n8n and \"Test AI agent\" on ElevenLabs. If everything is configured correctly, when you ask a question to the agent, the webhook on n8n is activated with the \"question\" field in the body filled with the question asked to the voice agent.\n\nThe AI ​​Agent will extract the information from the vector database, send it to the model to create the response which will be sent via the response webhook to ElevenLabs which will transform it into voice",
+        "height": 240,
+        "width": 1400,
+        "color": 5
+      },
+      "id": "811bea23-e9d9-4bfd-bbae-d30fccafaae6",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        1264
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# STEP 1\n\n## Create an Agent on ElevenLabs \n- Create an agent on ElevenLabs (eg. test_n8n)\n- Add \"First message\" (eg. Hi, Can I help you?)\n- Add the \"System Prompt\" message... eg:\n'You are the waiter of \"Demo Restaurant\". If you are asked a question, use the tool \"test_chatbot_elevenlabs\". When you receive the answer from \"test_chatbot_elevenlabs\" answer the user clearly and precisely.'\n- In Tools add a Webhook called eg. \"test_chatbot_elevenlabs\" and add the following description:\n'You are the waiter. Answer the questions asked and store them in the question field.'\n- Add the n8n webhook URL (method POST)\n- Enable \"Body Parameters\" and insert in the description \"Ask the user the question to ask the place.\", then in the \"Properties\" add a data type string called \"question\", value type \"LLM Prompt\" and description \"user question\"",
+        "height": 360,
+        "width": 1420,
+        "color": 3
+      },
+      "id": "2d1b397a-49a2-4fd8-ae12-7984049ae8e4",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        320,
+        -144
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "bc500049-1bf6-408f-aff5-6e2b0b0fee79",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        368,
+        544
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://{{QDRANT_URL}}/collections/{{QDRANT_COLLECTION}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n \"filter\": {}\n}",
+        "options": {}
+      },
+      "id": "90992a1f-0eb7-405d-bbc3-15ed54fea9dd",
+      "name": "Create collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        672,
+        400
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://{{QDRANT_URL}}/collections/{{QDRANT_COLLECTION}}/points/delete",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n \"filter\": {}\n}",
+        "options": {}
+      },
+      "id": "01137486-b417-4697-98ba-7fbf69e99c18",
+      "name": "Refresh collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        672,
+        656
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive",
+            "cachedResultName": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=test-whatsapp"
+          }
+        },
+        "options": {}
+      },
+      "id": "411611b6-e4b3-4bd2-9d4f-0f6108d57929",
+      "name": "Get folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        880,
+        656
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "c753d93e-100c-48d4-bf60-ca4d123d1a6e",
+      "name": "Download Files",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        1104,
+        656
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "id": "5a7b9d09-a129-4a0f-a06b-8872c2224ee2",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1488,
+        864
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkSize": 300,
+        "chunkOverlap": 30
+      },
+      "id": "24ebd226-c3a6-451a-ab2b-2b60d4b1740d",
+      "name": "Token Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterTokenSplitter",
+      "position": [
+        1472,
+        1024
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# STEP 2\n\n## Create Qdrant Collection\nChange:\n- {{QDRANT_URL}}\n- {{QDRANT_COLLECTION}}",
+        "height": 220,
+        "width": 880,
+        "color": 6
+      },
+      "id": "ef7521e7-0d30-4abb-ba89-f671344bf0c2",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        864,
+        336
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "{{QDRANT_COLLECTION}}"
+        },
+        "options": {}
+      },
+      "id": "ee713d92-7668-44ee-a89e-2c801e1ea448",
+      "name": "Qdrant Vector Store1",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        1344,
+        656
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c363a462-c0eb-4b7e-a256-6bdb0c290998",
+      "name": "Embeddings OpenAI1",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        1328,
+        864
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "content": "# STEP 3\n\n\n\n\n\n\n\n\n\n\n\n\n## Documents vectorization with Qdrant and Google Drive\nChange:\n- {{QDRANT_URL}}\n- {{QDRANT_COLLECTION}}",
+        "height": 400,
+        "width": 620,
+        "color": 4
+      },
+      "id": "b4c6f9f8-9a4f-434f-a013-2fe9137eb784",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        640,
+        608
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d7273a95-0ede-4527-8354-3c5010742b3c",
+      "name": "Respond to ElevenLabs",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1488,
+        1536
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cbb3394b-d1b7-486c-9fcc-7260547b61cf",
+      "name": "OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        800,
+        1776
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test_voice_message_elevenlabs",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aa0624f1-e3ea-40d5-a13c-3610a454cde4",
+      "name": "Listen",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        400,
+        1536
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {},
+      "id": "4ef27f2a-0bb7-4d2a-bb36-5076076f1a91",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        960,
+        1776
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "894c1be2-223d-408d-9c81-fb0bd47c955b",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        1312,
+        2064
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# STEP 5\n\n## Add Widget\n\nAdd the widget to your business website by replacing {{ELEVENLABS_AGENT_ID}} with the agent id you created on ElevenLabs\n\n<elevenlabs-convai agent-id=\"{{ELEVENLABS_AGENT_ID}}\"></elevenlabs-convai><script src=\"https://elevenlabs.io/convai-widget/index.js\" async type=\"text/javascript\"></script>",
+        "height": 240,
+        "width": 1400,
+        "color": 7
+      },
+      "id": "dc1eec88-8c3d-44ae-ae4b-ae9d5896cb10",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        2368
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "Listen": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to ElevenLabs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get folder": {
+      "main": [
+        [
+          {
+            "node": "Download Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Files": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Vector Store Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh collection": {
+      "main": [
+        [
+          {
+            "node": "Get folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Create collection",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Refresh collection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
