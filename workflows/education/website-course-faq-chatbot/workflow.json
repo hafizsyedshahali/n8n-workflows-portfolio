@@ -1,0 +1,266 @@
+{
+  "name": "Website Course FAQ Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -288,
+        -16
+      ],
+      "id": "a97256e6-6e3f-434c-a623-6c796ff01217",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=\nYou are an expert Course Assistant. Your primary goal is to assist the user based on the provided context and tools.\n\nYou have access to the following tools:\n- Get_Course_Info: Use this tool to retrieve details about a specific course.\n- Get_FAQ: Use this tool to search for answers to frequently asked questions.\n- Append_row_in_sheet: Use this tool ONLY when the user provides their mobile number for an unanswerable question. When using this tool, you MUST save the customer's question and their mobile number in the 'Unanswered Queries' sheet.\n\nFollow these strict rules for your response:\n1.  **Language Consistency:** Always reply in the same language the customer uses (English, Hindi, or Roman English).\n2.  **Welcome Message:** Your first response, if the user hasn't said anything, must be: \"Welcome to our learning platform! How can I help you today?\"\n3.  **Course Queries:** If the question matches a course, use the Get_Course_Info tool.\n4.  **FAQ Queries:** If the question matches an FAQ, use the Get_FAQ tool.\n5.  **Unknown Queries (Fallback):** If the information is not found in Courses or FAQ, use the Append_row_in_sheet tool to save the user's question and the mobile number they provided. Then, reply gently: \"Sorry, we don't have this information right now. We have noted your question. Please share your mobile number so that our team can contact you soon.\"\n6.  **Memory Use:** Use the Simple Memory to maintain context of the conversation history.\n\nImportant Points to Check After Applying This Prompt:\n\nModel Selection: Ensure the Chat Model connected to the AI Agent (the OpenRouter node) supports Function/Tool Calling.\n\nTool Naming: Make sure the names of your tools in n8n (Get Course Info, Get FAQ, Append row in sheet) exactly match the names mentioned in Rule #3, #4, and #5 of the system message (case-sensitive!).\n\nTool Connections: Verify that the Tool Ports in the AI Agent node are correctly connected to the respective Google Sheets nodes (Get Course Info, Get FAQ, Append row in sheet)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "5a93e175-c3c5-44c4-a0f4-3de793b746d3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -64,
+        256
+      ],
+      "id": "4cc1f63a-38df-482d-ad56-9b393567709d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Course Data"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Courses"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        192
+      ],
+      "id": "ec135197-a6a4-4215-ae92-b5ade85bb777",
+      "name": "Get Course info",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Course Data"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1491844566,
+          "mode": "list",
+          "cachedResultName": "FAQ"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        160,
+        192
+      ],
+      "id": "6c0cdff0-08c8-4787-ad58-b24effb7b212",
+      "name": "Get FAQ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Course Data"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1888975411,
+          "mode": "list",
+          "cachedResultName": "Unanswered Queries"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer Question": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Customer_Question', ``, 'string') }}",
+            "Mobile Number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Mobile_Number', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Customer Question",
+              "displayName": "Customer Question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mobile Number",
+              "displayName": "Mobile Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        288,
+        192
+      ],
+      "id": "4bd8af31-1c28-4188-ad4b-c3a0b1d9aa6a",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mistralai/mistral-small-24b-instruct-2501:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        192
+      ],
+      "id": "4fe6da9f-5d6f-46e4-9cd9-48e553a8354b",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "YOUR_OPENROUTER_CREDENTIAL",
+          "name": "YOUR_OPENROUTER_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Course info": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FAQ": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "meta": {
+    "templateId": "4975",
+    "templateCredsSetupCompleted": true
+  }
+}

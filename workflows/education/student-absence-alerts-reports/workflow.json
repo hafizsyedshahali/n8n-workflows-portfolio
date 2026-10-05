@@ -1,0 +1,418 @@
+{
+  "name": "Student Absence Alerts and Reports",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "610ad51f-ae4f-4109-8f2a-10fd745e0634",
+      "name": "Daily Attendance Check - 10:30 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        352,
+        544
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process absent students\n\n// Step 1: Get data from both Google Sheets\nconst attendanceRecords = $('Read Today\\'s Attendance1').all();\nconst studentContacts = $('Read Student Contacts1').all();\n\nconst absentStudentsOutput = [];\nconst today = new Date().toISOString().split('T')[0];\n\n// Step 2: Check every attendance record\nfor (const record of attendanceRecords) {\n  const attendance = record.json;\n  \n  // Only process unexcused absences\n  if (attendance.Status === 'Absent') {\n    const student = studentContacts.find(s => s.json['Student ID'] === attendance['Student ID']);\n    \n    if (student) {\n      const studentData = student.json;\n      \n      const thirtyDaysAgo = new Date();\n      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);\n      const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split('T')[0];\n\n      const recentAbsences = attendanceRecords.filter(r => \n        r.json['Student ID'] === attendance['Student ID'] && \n        r.json.Status === 'Absent' && \n        r.json.Date >= thirtyDaysAgoString\n      ).length;\n      \n      const totalDays = 30;\n      const presentDays = totalDays - recentAbsences;\n      const attendanceRate = Math.round((Math.max(0, presentDays) / totalDays) * 100);\n      \n      let alertLevel;\n      if (recentAbsences >= 5) {\n        alertLevel = 'High';\n      } else if (recentAbsences >= 3) {\n        alertLevel = 'Medium';\n      } else if (recentAbsences > 0) {\n        alertLevel = 'Low';\n      } else {\n        alertLevel = 'None';\n      }\n\n      absentStudentsOutput.push({\n        studentId: attendance['Student ID'],\n        studentName: studentData.Name,\n        parentEmail: studentData.Email,\n        parentPhone: studentData.Phone,\n        absentDate: today,\n        recentAbsences: recentAbsences,\n        attendanceRate: attendanceRate,\n        alertLevel: alertLevel\n      });\n    }\n  }\n}\n\n// Remove duplicate students from the list\nconst uniqueAbsentStudents = absentStudentsOutput.filter((student, index, self) =>\n  index === self.findIndex((s) => (\n    s.studentId === student.studentId\n  ))\n);\n\n// Step 3: Return the final unique list to the next node\nreturn uniqueAbsentStudents.map(item => ({ json: item }));\n"
+      },
+      "id": "d5fee5c7-c0f3-48df-8348-ccc6ce1c032d",
+      "name": "Process Absent Students",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        784,
+        544
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// New Code with Explicit Filtering for High Alerts\n\nconst studentData = $input.first().json;\n\n// --- START OF FILTERING CHECK ---\nif (studentData.alertLevel !== 'High') {\n    // If the alert level is NOT High, return an empty array or nothing.\n    // Returning an empty array effectively filters this item out.\n    return []; \n}\n// --- END OF FILTERING CHECK ---\n\n\nconst alertIcon = '🚨'; // Since we filtered, we know it's High\n\nconst emailSubject = `${alertIcon} Absence Alert: ${studentData.studentName} - ${studentData.absentDate}`;\n// ... rest of your code for emailBody and return statement remains the same ...\n// (But use studentData.studentName, studentData.parentName, etc. as before)\n\nconst emailBody = `Dear ${studentData.parentName}, \n// ... rest of the body content ...\n\n${studentData.alertLevel === 'High' ? \n  '⚠️ ATTENTION: Your child has exceeded the acceptable absence limit...' :\n  // Since we filtered, this part might not even be needed, but keeping it structured:\n  '...' \n}\n\n// ... rest of the body content ...`;\n\nreturn [{\n  json: {\n    to: studentData.parentEmail,\n    subject: emailSubject,\n    body: emailBody,\n    studentName: studentData.studentName,\n    parentName: studentData.parentName,\n    alertLevel: studentData.alertLevel\n  }\n}];"
+      },
+      "id": "3c43aad3-6e4e-481e-91c7-5b180be1fcb4",
+      "name": "Prepare Absence Email",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1008,
+        352
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const studentData = $input.first().json;\n\nconst alertEmoji = studentData.alertLevel === 'High' ? '🚨' : studentData.alertLevel === 'Medium' ? '⚠️' : '📋';\n\nconst whatsappMessage = `${alertEmoji} *Absence Alert*\\n\\nDear ${studentData.parentName},\\n\\n👤 Student: *${studentData.studentName}*\\n🏫 Class: ${studentData.className}\\n📅 Absent Date: ${studentData.absentDate}\\n\\n📊 *Attendance Summary:*\\n• Recent Absences (30 days): ${studentData.recentAbsences}\\n• Attendance Rate: ${studentData.attendanceRate}%\\n• Alert Level: *${studentData.alertLevel}*\\n\\n${studentData.alertLevel === 'High' ? \n  '🚨 *URGENT:* Please contact school office immediately regarding excessive absences.' :\n  studentData.alertLevel === 'Medium' ? \n  '⚠️ *ATTENTION:* Please ensure regular attendance to avoid academic impact.' :\n  '📝 *NOTICE:* Routine absence notification. Please ensure regular attendance.'}\n\nIf excused, please contact school office with documentation.\\n\\n📞 Contact: (555) 123-4567\\n📧 {{SCHOOL_EMAIL}}\\n\\n_School Attendance Office_`;\n\nreturn [{\n  json: {\n    phone: studentData.parentPhone,\n    message: whatsappMessage,\n    studentName: studentData.studentName,\n    parentName: studentData.parentName,\n    alertLevel: studentData.alertLevel\n  }\n}];"
+      },
+      "id": "9bd9271c-16df-48a5-adeb-ebf37166f566",
+      "name": "Prepare Absence SMS",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1008,
+        752
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v17.0/{{WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{WHATSAPP_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "9befba67-8bff-430e-8cb1-ce1d6bdbc113",
+      "name": "Send Absence WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1232,
+        752
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate the daily attendance report\n\n// Step 1: Get the unique list of absent students from the previous node\nconst absentStudents = $input.all();\n\n// If no student is absent, return an empty report\nif (absentStudents.length === 0) {\n  return [{\n    json: {\n      date: new Date().toISOString().split('T')[0],\n      totalAbsences: 0,\n      highAlerts: 0,\n      mediumAlerts: 0,\n      lowAlerts: 0,\n      averageAttendanceRate: 100,\n      studentsAtRisk: \"None\"\n    }\n  }];\n}\n\nconst today = new Date().toISOString().split('T')[0];\n\n// Step 2: Build the report summary\nconst attendanceReport = {\n  date: today,\n  \n  // totalAbsences is the number of unique absent students from the previous node\n  totalAbsences: absentStudents.length,\n  \n  highAlerts: absentStudents.filter(s => s.json.alertLevel === 'High').length,\n  mediumAlerts: absentStudents.filter(s => s.json.alertLevel === 'Medium').length,\n  lowAlerts: absentStudents.filter(s => s.json.alertLevel === 'Low').length,\n  \n  averageAttendanceRate: Math.round(\n    absentStudents.reduce((sum, s) => sum + (s.json.attendanceRate || 0), 0) / absentStudents.length\n  ),\n  \n  studentsAtRisk: absentStudents\n    .filter(s => s.json.alertLevel === 'High' || s.json.alertLevel === 'Medium')\n    .map(s => `${s.json.studentName} (${s.json.recentAbsences} Absences)`)\n    .join(', ') || \"None\"\n};\n\n\n// Step 3: Return the final report to the next node\nreturn [{ json: attendanceReport }];\n"
+      },
+      "id": "2671ebe9-95a9-45cd-aa02-6fb2a7095c00",
+      "name": "Generate Attendance Report",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1008,
+        544
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "content": "### **Absence Tracking Workflow**\n\n**🕙 Schedule:** Daily at 10:30 AM\n\n**📊 Process:**\n1. Check today's attendance records\n2. Identify absent students (unexcused)\n3. Calculate 30-day absence patterns\n4. Send alerts via Email & WhatsApp\n5. Generate daily attendance reports\n\n**🚦 Alert Levels:**\n- **High (🚨):** 5+ absences in 30 days\n- **Medium (⚠️):** 3-4 absences in 30 days  \n- **Low (📋):** 1-2 absences in 30 days\n\n**📈 Tracking:**\n- Attendance rates calculation\n- Pattern analysis\n- Risk identification\n- Historical reporting",
+        "height": 500,
+        "width": 360,
+        "color": 5
+      },
+      "id": "c778d1dd-fa29-4a44-97f9-3c40b8a749bf",
+      "name": "Workflow Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "School attendance spreadsheet"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 348254992,
+          "mode": "list",
+          "cachedResultName": "Read Today's Attendance"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        560,
+        400
+      ],
+      "id": "9fb726ee-9dc5-423d-ac4c-304d14e62efc",
+      "name": "Read Today's Attendance1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "School attendance spreadsheet"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "student-records-workbook"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        560,
+        688
+      ],
+      "id": "8d84b654-326a-45d0-b963-f49b389bca5b",
+      "name": "Read Student Contacts1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "School attendance spreadsheet"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1007841245,
+          "mode": "list",
+          "cachedResultName": "Save Attendance Report"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "totalAbsences": "={{ $json.totalAbsences }}",
+            "highAlerts": "={{ $json.highAlerts }}",
+            "mediumAlerts": "={{ $json.mediumAlerts }}",
+            "lowAlerts": "={{ $json.lowAlerts }}",
+            "averageAttendanceRate": "={{ $json.averageAttendanceRate }}",
+            "studentsAtRisk": "={{ $json.studentsAtRisk }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "totalAbsences",
+              "displayName": "totalAbsences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "highAlerts",
+              "displayName": "highAlerts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mediumAlerts",
+              "displayName": "mediumAlerts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lowAlerts",
+              "displayName": "lowAlerts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "averageAttendanceRate",
+              "displayName": "averageAttendanceRate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "studentsAtRisk",
+              "displayName": "studentsAtRisk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        544
+      ],
+      "id": "85636620-9432-4a2d-915a-e2cb1b9edf66",
+      "name": "Save Attendance Report1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.to}}",
+        "subject": "={{$json.subject}}",
+        "message": "={{$json.body}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        352
+      ],
+      "id": "b6a3f838-1331-4620-a183-6afd06b36713",
+      "name": "Send a message",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL",
+          "name": "YOUR_GMAIL_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Prepare Absence SMS": {
+      "main": [
+        [
+          {
+            "node": "Send Absence WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Absence Email": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Absent Students": {
+      "main": [
+        [
+          {
+            "node": "Prepare Absence Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Absence SMS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Attendance Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Attendance Report": {
+      "main": [
+        [
+          {
+            "node": "Save Attendance Report1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Attendance Check - 10:30 AM": {
+      "main": [
+        [
+          {
+            "node": "Read Today's Attendance1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Student Contacts1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Today's Attendance1": {
+      "main": [
+        [
+          {
+            "node": "Process Absent Students",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Student Contacts1": {
+      "main": [
+        [
+          {
+            "node": "Process Absent Students",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
