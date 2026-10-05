@@ -1,0 +1,161 @@
+{
+  "name": "Facebook Lead Ads to Salesforce Sync",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "position": [
+        368,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "76a1cd16-f92a-423c-a097-164543b50f9c"
+    },
+    {
+      "parameters": {
+        "page": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{FACEBOOK_PAGE_ID}}"
+        },
+        "form": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{FACEBOOK_FORM_ID}}"
+        },
+        "options": {}
+      },
+      "name": "Facebook Lead Ad",
+      "type": "n8n-nodes-base.facebookLeadAdsTrigger",
+      "position": [
+        576,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "1de0e24a-f632-413b-9591-eb4aa562aaa0"
+    },
+    {
+      "parameters": {
+        "documentId": "{{GOOGLE_SHEET_ID}}",
+        "sheetName": "{{SHEET_NAME}}",
+        "options": {}
+      },
+      "name": "Log Lead to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1008,
+        240
+      ],
+      "typeVersion": 3,
+      "id": "4858962f-b077-4515-8c42-95398fc9ca64"
+    },
+    {
+      "parameters": {},
+      "name": "Create Lead in Salesforce",
+      "type": "n8n-nodes-base.salesforce",
+      "position": [
+        1232,
+        240
+      ],
+      "typeVersion": 2,
+      "id": "79445b76-9b7c-4d98-ab1f-04e3ed10b720",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "firstName",
+              "value": "={{ $json.full_name.split(' ').slice(0, -1).join(' ') || $json.full_name }}"
+            },
+            {
+              "name": "lastName",
+              "value": "={{ $json.full_name.split(' ').pop() }}"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "name": "Prepare CRM Data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        800,
+        240
+      ],
+      "typeVersion": 2,
+      "id": "5c0e1944-9b7f-4f98-ad16-307a05ffd577"
+    },
+    {
+      "parameters": {
+        "documentId": "={{$nodes[\"Log Lead to Google Sheets\"].parameters.documentId}}",
+        "sheetName": "={{$nodes[\"Log Lead to Google Sheets\"].parameters.sheetName}}",
+        "options": {}
+      },
+      "name": "Update Status in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1456,
+        240
+      ],
+      "typeVersion": 3,
+      "id": "b9685d11-6c0b-49b5-a1d1-70b425d597b1"
+    }
+  ],
+  "connections": {
+    "Facebook Lead Ad": {
+      "main": [
+        [
+          {
+            "node": "Prepare CRM Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare CRM Data": {
+      "main": [
+        [
+          {
+            "node": "Log Lead to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Lead in Salesforce": {
+      "main": [
+        [
+          {
+            "node": "Update Status in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Lead to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Create Lead in Salesforce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateId": "6687"
+  }
+}
