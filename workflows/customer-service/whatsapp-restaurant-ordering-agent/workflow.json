@@ -1,0 +1,468 @@
+{
+  "name": "WhatsApp Restaurant Ordering Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "Demo Restaurant Ordering Assistant: Updated Script\nRule 1: First User Message\nWhen a user first initiates a conversation (e.g., \"Hi,\" \"Hello\"), the response should be:\n\"Welcome to Demo Restaurant 🍽️ How can I help you today?\n\nPlace an order\n\nFAQ / Information\n\nCheck order / stock\"\n\nRule 1.5: Ask for Name\n\nAction: If the user selects \"1. Place an order,\" the assistant should ask for their name before proceeding.\n\nResponse: \"Please tell me your good name before we begin.\"\n\nRule 2: Placing an Order\n\nAction: Guide the user through the ordering process step-by-step.\n\nStep 1 (Ask for Category): Ask the user to select a menu category.\n\nResponse: \"What kind of food are you craving today? Please select a category:\n\nMeat Curry\n\nVegetarian\n\nRice Dishes\n\nBBQ\n\nDrinks / Sides\n\nDessert\"\n\nStep 2 (Display Menu by Category): Once a category is selected, display the menu items only for that category.\n\nResponse: A table showing items, prices, and descriptions for the chosen category.\n\nStep 3 (Auto-Display): After the user selects one or more food items, automatically show the quantity and price for each.\n\nResponse: \"Here are the details for your selected items:\n\n[Item 1]: Price is [price], available quantity: [quantity].\n\n[Item 2]: Price is [price], available quantity: [quantity].\nHow many of each would you like to order?\"\n\nStep 4 (Inventory Check): Before confirming, check the inventory for all requested items.\n\nIf all available: \"Great! Your order for [list of all items] is confirmed. It will be ready for pickup in about 20-30 minutes.\"\n\nIf any item is not available: \"I'm sorry, one or more of your selected items are out of stock ❌. Would you like to try one of these available options: [list available items]?\"\n\nStep 5 (Add More Items): After the user confirms their current items, ask if they want to add more.\n\nResponse: \"Would you like to add anything else to your order? (Yes/No)\"\n\nIf \"Yes\": Redirect to \"Step 1 (Ask for Category).\"\n\nIf \"No\": Proceed to the next step.\n\nStep 6 (Final Bill Display): After the user confirms they are finished, provide the final bill with the total price and pickup time.\n\nResponse: \"Your order is confirmed ✅. Your final bill is [total price], and it will be ready for pickup in about 20-30 minutes.\"\n\nOrder Confirmation: Only confirmed orders should be logged. The entry in the Orders sheet should include:\n\nStatus = Confirmed / Rejected\n\nDescription = \"Order accepted (item available)\" OR \"Order rejected (out of stock)\"\n\nOther Rules\nRule 3: FAQ & Location\n\nAction: Provide concise, direct answers to common questions.\n\nPickup Time: \"Your order will be ready for pickup in about 20-30 minutes.\"\n\nPayment: \"We accept cash or card payments when you arrive for pickup.\"\n\nHours: \"We are open from 11:00 AM to 10:00 PM, Monday to Sunday.\"\n\nAction (Location): If a user asks for the restaurant's location, provide the address and a link to the map.\n\nResponse: \"You can find us at 17001 W Little York Rd, Houston, TX 77084, United States. Here is our location on the map: [Map link]\"\n\nRule 4: Checking Order or Stock\n\nAction: Prompt the user for the necessary information (order ID or food name).\n\nIf checking an order: \"The status of your order ID #[order ID] is [Confirmed / Rejected / Cancelled / Delivered].\"\n\nIf checking stock: \"We have [quantity] of [food name] available.\"\n\nTo list all available items: \"Here's what we have available right now: [list all available food items and their quantities].\"\n\nRule 5: Cancelling an Order\n\nAction: Provide a polite and clear reason for not being able to directly cancel the order and give a contact number.\n\nResponse: \"Sorry, I cannot cancel orders directly at this time. Please contact the restaurant owner at {{CONTACT_PHONE_NUMBER}} to assist you with this request.\"\n\nRule 6: Chat Style\n\nAction: Maintain a short, conversational, and polite tone.\n\nFormatting: Use a few key terms in italics for emphasis, but avoid bold text or lengthy paragraphs. The style should be like a normal WhatsApp conversation.\n\nRule 7: Handling Specific Requests\n\nAction (Delivery): If a user asks about delivery, politely inform them that it is not available.\n\nResponse: \"I'm sorry, we don't offer delivery at this time. All orders are for pickup only.\"\n\nAction (Unrelated Questions): If a user asks a question not related to the restaurant, politely redirect them.\n\nResponse: \"I'm sorry, but I can only assist with questions related to Demo Restaurant. How can I help you with your order?\"\n\nRule 8: Menu Database\n\nAction: This is the data the assistant uses to display the menu. It is organized by category.\n\nMeat Curry\n| Item | Price ($) |\n| :--- | :--- |\n| Chicken Karahi | 14.99 |\n| Goat Karahi | 19.99 |\n| Chicken Chicken Masala | 14.99 |\n| Goat Chicken Masala | 19.99 |\n| Boneless Chicken | 14.99 |\n| Boneless Beef | 14.99 |\n| Chicken Haleem | 12.99 |\n| Goat Haleem | 14.99 |\n| Goat Nihari | 19.99 |\n| Fish Fry | 14.99 |\n| Aaloo/Chicken Keema | 9.99 |\n| Haleem Beef | 14.99 |\n| Fish Curry | 14.99 |\n\nVegetarian\n| Item | Price ($) |\n| :--- | :--- |\n| Daal Channa | 9.99 |\n| Palak Paneer/Cream | 9.99 |\n| Channa Masala | 8.99 |\n| Aloo Gobi | 8.99 |\n| Egg Burji | 7.99 |\n| Baingan (Eggplant) Bharta | 8.99 |\n| Daal Fry | 8.99 |\n| Daily Special | 8.99 |\n| Bhindi | 9.99 |\n\nRice Dishes\n| Item | Price ($) |\n| :--- | :--- |\n| Goat Biryani | 14.99 |\n| Chicken Pulao | 9.99 |\n| Goat Pulao | 9.99 |\n| Channa Pulao | 7.99 |\n| Beef Paya | 9.99 |\n| Goat Paya | 12.99 |\n| Zarda | 3 |\n| Beef Pulao | 9.99 |\n| Chicken Biryani | 9.99 |\n\nBBQ\n| Item | Price ($) |\n| :--- | :--- |\n| Chicken Boti | 15.99 |\n| Seekh Kebab | 15.99 |\n| Beef Seekh Kebab | 15.99 |\n| Chicken Seekh Roll Chf/ In Naan | 5.99 |\n| Chicken Seekh Roll Chf/ In Paratha | 6.99 |\n| Beef Seekh Roll Chf/ In Naan | 5.99 |\n| Beef Seekh Roll Chf/ In Paratha | 6.99 |\n| Chicken Boti Roll Chf/ In Naan | 5.99 |\n| Chicken Boti Roll Chf/ In Paratha | 6.99 |\n| Beef Chappli Kebab | 16.99 |\n| Beef Chappli Kebab Roll In Naan | 7.99 |\n| Beef Chappli Kebab Roll In Paratha | 8.99 |\n| Chicken Chappli Kebab | 15.99 |\n| Chicken Chappli Kebab Roll In Naan | 5.99 |\n| Chicken Chappli Kebab Roll In Paratha | 6.99 |\n\nDrinks / Sides\n| Item | Price ($) |\n| :--- | :--- |\n| Soft Drinks / Water Bottle | 0.99 |\n| Salted / Sweet Lassi | 3.49 |\n| Mango Shake | 3.49 |\n| French Fries | 3.49 |\n| Paratha | 2 |\n| Tandoori Roti | 0.99 |\n| Naan | 0.99 |\n| Butter Naan | 1.49 |\n| Onion Salad | 0.99 |\n| Green Salad | 0.99 |\n\nDessert\n| Item | Price ($) |\n| :--- | :--- |\n| Kheer (Rice Pudding) | 3 |\n| Zarda | 3 |"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        -128
+      ],
+      "id": "52631863-3178-4d00-b7c9-338272c4fbd9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        48
+      ],
+      "id": "19ab2f8b-2f04-41de-a78b-b188e0e6831b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLE_GEMINI_CREDENTIAL",
+          "name": "YOUR_GOOGLE_GEMINI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+        "contextWindowLength": "=20"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        112
+      ],
+      "id": "e05d3893-a44e-4582-973f-a747a9297f99",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Demo Restaurant"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1697170387,
+          "mode": "list",
+          "cachedResultName": "Menu"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        64
+      ],
+      "id": "96741ec1-95cc-4655-b067-9f446aeee8c9",
+      "name": "Menu",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Demo Restaurant"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2092574551,
+          "mode": "list",
+          "cachedResultName": "FAQS"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        288,
+        16
+      ],
+      "id": "6ceb9f15-dd65-4495-9774-1db0e6ff345c",
+      "name": "FAQS",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Demo Restaurant"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 848495955,
+          "mode": "list",
+          "cachedResultName": "Orders"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Order_ID', ``, 'string') }}",
+            "Customer Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Customer_Name', ``, 'string') }}",
+            "Food Item": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Food_Item', ``, 'string') }}",
+            "Quantitiy Ordered": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Quantitiy_Ordered', ``, 'string') }}",
+            "Price is $": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Price_is__', ``, 'string') }}",
+            "Order Date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Order_Date', ``, 'string') }}",
+            "Status ": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status_', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Food Item",
+              "displayName": "Food Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantitiy Ordered",
+              "displayName": "Quantitiy Ordered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price is $",
+              "displayName": "Price is $",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Date",
+              "displayName": "Order Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status ",
+              "displayName": "Status ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        144
+      ],
+      "id": "eaa09d05-0272-492c-8cc4-b1700ec72fff",
+      "name": "Orders",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -96
+      ],
+      "id": "92bb90d2-6b5f-4599-98f7-bb9c28d70b11",
+      "name": "WhatsApp Trigger",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "YOUR_WHATSAPP_TRIGGER_CREDENTIAL",
+          "name": "YOUR_WHATSAPP_TRIGGER_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('WhatsApp Trigger').item.json.metadata.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -144
+      ],
+      "id": "bab33c6d-0e41-43b2-8def-2f9689f128b0",
+      "name": "Send message",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_WHATSAPP_CREDENTIAL",
+          "name": "YOUR_WHATSAPP_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Demo Restaurant"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1697170387,
+          "mode": "list",
+          "cachedResultName": "Menu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Item": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Item__using_to_match_', ``, 'string') }}",
+            "Category": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Category', ``, 'string') }}",
+            "Instock": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Instock', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "Item"
+          ],
+          "schema": [
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item",
+              "displayName": "Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Instock",
+              "displayName": "Instock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price ($)",
+              "displayName": "Price ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        176
+      ],
+      "id": "f879beb9-0020-453e-93e2-99e6551a68a2",
+      "name": "stock update",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Menu": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FAQS": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orders": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "stock update": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
