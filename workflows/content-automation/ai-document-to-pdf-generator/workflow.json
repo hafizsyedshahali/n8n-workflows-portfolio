@@ -1,0 +1,318 @@
+{
+  "name": "AI Document to PDF Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "name": "={{ $json.name }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "{{GOOGLE_DRIVE_FOLDER_ID}}",
+          "mode": "list",
+          "cachedResultName": "n8n pdf "
+        },
+        "options": {}
+      },
+      "id": "913b47b3-928e-4cf5-94ad-dc6d2bd21e79",
+      "name": "Archiving PDF File",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        2368,
+        640
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "YOUR_GOOGLE_DRIVE_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {}
+      },
+      "id": "f57006d3-3c9c-4cf6-9de6-029594063769",
+      "name": "Download attachment file",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        2592,
+        640
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "YOUR_GOOGLE_DRIVE_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "uploadType",
+              "value": "multipart"
+            },
+            {
+              "name": "supportsAllDrives",
+              "value": "true"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "boundary",
+              "value": "foo_bar_baz"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "multipart/related; boundary=foo_bar_baz",
+        "body": "=--foo_bar_baz\nContent-Type: application/json; charset=UTF-8\n\n{\n  \"name\": \"{{ $json.Today }}\",\n  \"mimeType\": \"application/vnd.google-apps.document\",\n  \"parents\": [\"{{ $json['Drive Folder ID'] }}\"]\n}\n\n--foo_bar_baz\nContent-Type: text/markdown; charset=UTF-8\n\n{{ $('Generate sample markdown document').first().json.output }}\n\n--foo_bar_baz--",
+        "options": {}
+      },
+      "id": "676932ac-253c-400b-8c1f-262265d51f17",
+      "name": "Create document file",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1920,
+        640
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "YOUR_GOOGLE_DRIVE_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "id": "81c6eb6f-33e0-4611-be43-04f596e85f22",
+      "name": "Convert document to PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        2144,
+        640
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "YOUR_GOOGLE_DRIVE_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Act as a senior technical writer and documentation expert. Your task is to create a comprehensive, multi-page official document based on the topic provided by the user.\n\nThe document MUST be generated in the following strict order and structure:\n\n1.  *Title Page:*\n    *   Start with a clear and concise main title (H1).\n    *   *After the title, you MUST insert a page break.* Use this exact HTML code for the page break: <div style=\"page-break-after: always;\"></div>\n\n2.  *Table of Contents Page:*\n    *   On the new page, create a heading ## Table of Contents.\n    *   Generate a *clickable, multi-level Table of Contents* listing all the sections (H2) and sub-sections (H3) that will follow.\n    *   All entries in the ToC must be numbered (e.g., 1., 1.1, 1.2, 2.).\n    *   Create clickable links for each entry.\n    *   *After the Table of Contents is complete, you MUST insert another page break* using the same HTML code.\n\n3.  *Main Document Content:*\n    *   On the next new page, start the main content.\n    *   *All headings MUST be numbered.* Main headings (H2) should be numbered like ## 1. Executive Summary, ## 2. Company Summary.\n    *   *All sub-headings (H3) MUST also be numbered* relative to their main heading, like ### 2.1 Company Ownership.\n    *   The link target in the Table of Contents (#...) should be the heading text in lowercase, with spaces replaced by hyphens, and without the numbers. For example, ## 2. Company Summary will have a link target of #company-summary.\n    *   Format the content professionally using *bold text*, bullet points, and Markdown tables.\n    *   End the document with a numbered conclusion heading.\n\nEnsure the entire output is a single, complete, and valid Markdown document. Do not include any commentary.\n\n---\n*TOPIC TO WRITE ABOUT:*\n{{ $json['Enter Your Topic Here'] }}",
+        "options": {
+          "systemMessage": ""
+        }
+      },
+      "id": "13fbb5c5-7f6d-4cc4-a73c-2082b603472e",
+      "name": "Generate sample markdown document",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1296,
+        640
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1ff0b9a4-7d60-44ec-b047-e49252f1ace9",
+              "name": "Drive Folder ID",
+              "type": "string",
+              "value": "{{GOOGLE_DRIVE_FOLDER_ID}}"
+            },
+            {
+              "id": "d64a1ac4-15db-4c84-a1db-fbd6b48084f5",
+              "name": "Today",
+              "type": "string",
+              "value": "={{ $now.format(\"ddMMyyyyhhmmss\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d265e9b-c64f-4212-acdd-708cd0df4b46",
+      "name": "Configure Google Drive Folder ",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1696,
+        640
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        864
+      ],
+      "id": "4d437fe9-ed18-480a-a85e-c1af275c472c",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_GOOGLE_GEMINI_CREDENTIAL",
+          "name": "YOUR_GOOGLE_GEMINI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Professional PDF Report Generator",
+        "formDescription": "Please enter the topic for your PDF report below.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Enter Your Topic Here",
+              "placeholder": "e.g., The History of Artificial Intelligence",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        656
+      ],
+      "id": "3e2115a8-afe4-42b5-8ae2-6b9fa4bb0ca0",
+      "name": "On form submission"
+    }
+  ],
+  "connections": {
+    "Archiving PDF File": {
+      "main": [
+        [
+          {
+            "node": "Download attachment file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create document file": {
+      "main": [
+        [
+          {
+            "node": "Convert document to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert document to PDF": {
+      "main": [
+        [
+          {
+            "node": "Archiving PDF File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download attachment file": {
+      "main": [
+        []
+      ]
+    },
+    "Configure Google Drive Folder ": {
+      "main": [
+        [
+          {
+            "node": "Create document file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate sample markdown document": {
+      "main": [
+        [
+          {
+            "node": "Configure Google Drive Folder ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate sample markdown document",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Generate sample markdown document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
