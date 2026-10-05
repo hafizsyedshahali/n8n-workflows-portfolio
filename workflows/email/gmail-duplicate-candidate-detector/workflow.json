@@ -1,0 +1,401 @@
+{
+  "name": "Gmail Duplicate Candidate Detector",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "74bf9981-f0ad-4fc7-8549-59a051fb205b",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        64,
+        160
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "labelIds": [],
+          "receivedAfter": "={{ $json.timestamp.toDateTime().minus(10,'min') }}"
+        }
+      },
+      "id": "e5771d7a-1592-443b-b476-e0be363df898",
+      "name": "Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        288,
+        160
+      ],
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL",
+          "name": "YOUR_GMAIL_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $input.first().json;\n\nconst snippet = email.snippet || '';\nconst from = email.From || '';\n\n// Use regex to extract values from snippet\nconst nameMatch = snippet.match(/Name:\\s*(.+?)\\s*Email:/i);\nconst emailMatch = snippet.match(/Email:\\s*(\\S+)/i);\nconst phoneMatch = snippet.match(/Phone:\\s*(\\d{10,})/i);\nconst roleMatch = snippet.match(/Role:\\s*(.+?)\\s*Total Experience:/i);\nconst experienceMatch = snippet.match(/Total Experience:\\s*(\\d+)/i);\nconst recruiterMatch = snippet.match(/Recruiter:\\s*(.+?)\\s*Resume/i);\nconst resumeUrlMatch = snippet.match(/Resume URL:\\s*(.+?)(?:\\s|$)/i);\n\n// Extract sender email from From field\nconst fromEmailMatch = from.match(/<(.+?)>/);\nconst sourceEmail = fromEmailMatch ? fromEmailMatch[1] : from;\n\nreturn [\n  {\n    json: {\n      candidate_name: nameMatch?.[1]?.trim() || '',\n      candidate_email: emailMatch?.[1]?.trim() || '',\n      candidate_phone: phoneMatch?.[1]?.trim() || '',\n      role_applied: roleMatch?.[1]?.trim() || '',\n      years_of_experience: experienceMatch?.[1]?.trim() || '',\n      recruiter: recruiterMatch?.[1]?.trim() || '',\n      resume_url: resumeUrlMatch?.[1]?.trim() || '',\n      source_email: sourceEmail\n    }\n  }\n];\n"
+      },
+      "id": "0e071158-7e25-409d-8113-77ef64c1860e",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        512,
+        160
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "cachedResultName": "Candidates"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "value": {
+            "recruiter": "={{ $json.recruiter }}",
+            "resume_url": "={{ $json.resume_url }}",
+            "role_applied": "={{ $json.role_applied }}",
+            "source_email": "={{ $json.source_email }}",
+            "candidate_name": "={{ $json.candidate_name }}",
+            "candidate_email": "={{ $json.candidate_email }}",
+            "candidate_phone": "={{ $json.candidate_phone }}",
+            "years_of_experience": "={{ $json.years_of_experience }}"
+          },
+          "schema": [
+            {
+              "id": "candidate_name",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "candidate_name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "candidate_email",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "candidate_email",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "candidate_phone",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "candidate_phone",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "role_applied",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "role_applied",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "years_of_experience",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "years_of_experience",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "role_applied",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "role_applied",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recruiter",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "recruiter",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resume_url",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "resume_url",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_email",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "displayName": "source_email",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "candidate_email"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a3b9ec24-67ca-4f67-a414-0ed568075aff",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1392,
+        272
+      ],
+      "typeVersion": 4.6
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "list",
+          "cachedResultName": "Candidates"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "e8c29d9e-8ca3-417b-81cc-135b6a45484c",
+      "name": "Google Sheets1",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        720,
+        160
+      ],
+      "typeVersion": 4.6,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "or",
+          "conditions": [
+            {
+              "id": "47596994-d10a-4a3b-b695-ff3cfc154374",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.isDuplicate }}",
+              "rightValue": "={{ $json.candidate_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4b0e1b19-4b44-4144-80c3-788810972965",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1168,
+        160
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{SLACK_USER_ID}}"
+        },
+        "text": "=User  {{ $json.candidate_name }} has already applied for {{ $json.role_applied }}",
+        "otherOptions": {}
+      },
+      "id": "399d5226-31e4-4903-9646-d58dfcadf6d9",
+      "name": "Slack",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        1392,
+        64
+      ],
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "jsCode": "const candidate =  $(\"Code\").all()[0].json;\nconst sheetRows = $('Google Sheets1').all();\n\nconst emailToCheck = candidate.candidate_email?.toLowerCase().trim();\n\n// Check if candidate_email already exists\nconst isDuplicate = sheetRows.some(row => {\n  return row.json.candidate_email?.toLowerCase().trim() === emailToCheck;\n});\n\nreturn [\n  {\n    json: {\n      ...candidate,\n      isDuplicate\n    }\n  }\n];\n"
+      },
+      "id": "72f41917-b937-4c66-bc9a-dae0a605672b",
+      "name": "Code1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        944,
+        160
+      ],
+      "executeOnce": false,
+      "retryOnFail": false,
+      "typeVersion": 2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Detect duplicate candidates by email/phone from Gmail to Slack using Google Sheets",
+        "height": 440,
+        "width": 1600
+      },
+      "id": "c0577517-a4a0-467e-b71d-83a62ae67d8a",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "\n##  **Workflow: Detect Duplicate Candidates from Gmail → Google Sheets / Slack**\n\n###  Purpose:\n\nAutomatically process new job application emails to detect duplicates and act accordingly.\n\n###  **Core Logic (Key Points):**\n\n1. **Trigger the workflow** every few minutes to check for new applicant emails labeled `applicant`.\n\n2. **Fetch recent Gmail messages**, extract structured candidate information (name, email, phone, role, etc.).\n\n3. **Compare the extracted email** with existing entries in a Google Sheet.\n\n4. **If the candidate email already exists**:\n\n   *  Send a **Slack alert** that this user already applied.\n\n5. **If the candidate is new**:\n\n   *  Append their data into the **Google Sheet**.\n\n###  Outcome:\n\n* Prevents duplicate processing of candidate applications.\n* Ensures clean, deduplicated records in Google Sheets.\n* Notifies via Slack if someone reapplies.\n",
+        "height": 680,
+        "width": 1600
+      },
+      "id": "3709b1a0-189d-424e-ad8a-bbcff7354f11",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        464
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
