@@ -24,7 +24,7 @@ Several workflows started from n8n community templates and were extended and ada
 
 | Workflow | Description | Integrations |
 |---|---|---|
-| [Suspicious Login Detection](workflows/security/suspicious-login-detection/) | Scores login risk and notifies Slack and the user | Webhook, Postgres, GreyNoise, IP-API, UserParser, Slack, Gmail |
+| [Suspicious Login Detection](workflows/security/suspicious-login-detection/) | GreyNoise-based HIGH / MEDIUM / LOW alert severity in Slack; emails the user about a new location or device | Webhook, Postgres, GreyNoise, IP-API, UserParser, Slack, Gmail |
 
 ### AI Agents
 
