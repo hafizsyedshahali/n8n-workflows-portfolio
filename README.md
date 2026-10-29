@@ -1,6 +1,6 @@
 # n8n Workflows Portfolio
 
-Hafiz Syed Shah Ali - AI Automation Engineer building n8n, AI agent and data workflows, moving into security automation.
+Hafiz Syed Shah Ali - AI Engineer · SOC Engineering & Security Automation, building n8n, AI agent and data workflows.
 LinkedIn: https://www.linkedin.com/in/hafizsyedshahali
 Email: mrali2813@gmail.com
 
