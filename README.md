@@ -2,7 +2,7 @@
 
 Hafiz Syed Shah Ali - AI Engineer · SOC Engineering & Security Automation, building n8n, AI agent and data workflows.
 LinkedIn: https://www.linkedin.com/in/hafizsyedshahali
-Email: mrali2813@gmail.com
+Email: hello@shahali.dev
 
 This repository contains n8n workflows I built for customer service, content, marketing, HR, reporting and security. Each workflow has its own folder with the exported `workflow.json` and a README that explains how it works and how to set it up. All credentials, IDs and personal data have been replaced with placeholders.
 
